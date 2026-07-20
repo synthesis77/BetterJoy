@@ -1,4 +1,4 @@
-﻿namespace BetterJoy.Forms
+namespace BetterJoy.Forms
 {
     partial class MainForm
     {
@@ -30,7 +30,7 @@
         {
             components = new System.ComponentModel.Container();
             var resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
-            console = new System.Windows.Forms.TextBox();
+            console = new System.Windows.Forms.RichTextBox();
             notifyIcon = new System.Windows.Forms.NotifyIcon(components);
             contextMenu = new System.Windows.Forms.ContextMenuStrip(components);
             showToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -68,10 +68,11 @@
             // 
             console.Location = new System.Drawing.Point(13, 220);
             console.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            console.Multiline = true;
             console.Name = "console";
             console.ReadOnly = true;
-            console.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            console.DetectUrls = true;
+            console.LinkClicked += console_LinkClicked;
+            console.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
             console.Size = new System.Drawing.Size(306, 149);
             console.TabIndex = 2;
             // 
@@ -437,7 +438,7 @@
 
         #endregion
 
-        public System.Windows.Forms.TextBox console;
+        public System.Windows.Forms.RichTextBox console;
         public System.Windows.Forms.NotifyIcon notifyIcon;
         private System.Windows.Forms.Label version_lbl;
         private System.Windows.Forms.ContextMenuStrip contextMenu;

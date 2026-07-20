@@ -362,6 +362,22 @@ public partial class MainForm : Form
         });
     }
 
+    private void console_LinkClicked(object? sender, LinkClickedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = e.LinkText,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger?.Log("Cannot open link from console.", ex);
+        }
+    }
+
     private void OnMessageLogged(string message, LogLevel level, Exception? e)
     {
         if (level == LogLevel.Debug)

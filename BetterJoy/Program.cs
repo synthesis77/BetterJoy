@@ -55,6 +55,7 @@ internal class Program
 
     public static readonly string ProgramLocation = Application.ExecutablePath;
     public static readonly string ProgramVersion = $"v{Application.ProductVersion.Split('+')[0]}";
+    public static readonly string driversPath = new Uri(System.IO.Path.Combine(AppContext.BaseDirectory, "Drivers")).AbsoluteUri;
 
     public static void Start()
     {
@@ -69,7 +70,7 @@ internal class Program
         }
         catch (VigemBusNotFoundException e)
         {
-            _logger?.Log("Could not connect to VIGEmBus. Make sure VIGEmBus driver is installed correctly.", e);
+            _logger?.Log($"Could not connect to VIGEmBus. Make sure VIGEmBus driver is installed correctly. \n{driversPath}", e);
         }
         catch (VigemBusAccessFailedException e)
         {
@@ -77,7 +78,7 @@ internal class Program
         }
         catch (VigemBusVersionMismatchException e)
         {
-            _logger?.Log("Could not connect to VIGEmBus. The installed VIGEmBus driver is not compatible. Install a newer version of VIGEmBus driver.", e);
+            _logger?.Log($"Could not connect to VIGEmBus. The installed VIGEmBus driver is not compatible. Install a newer version of VIGEmBus driver. \n{driversPath}", e);
         }
         catch (VigemAllocFailedException e)
         {
@@ -135,7 +136,7 @@ internal class Program
 
             if (!_hidHideService.IsInstalled)
             {
-                _logger?.Log("HIDHide is not installed.", LogLevel.Warning);
+                _logger?.Log($"HIDHide is not installed.  \n{driversPath}", LogLevel.Warning);
                 return;
             }
 
