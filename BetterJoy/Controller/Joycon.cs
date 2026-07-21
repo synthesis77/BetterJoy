@@ -20,6 +20,7 @@ using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using WindowsInput.Events;
+using static BetterJoy.Controller.Joycon;
 
 namespace BetterJoy.Controller;
 
@@ -99,6 +100,14 @@ public class Joycon
         N64
     }
 
+    public enum CalibrationSource
+    {
+        Uncalibrated,
+        Hardware_User,
+        Hardware_Factory,
+        Software
+    }
+
     private enum ReceiveError
     {
         None,
@@ -146,10 +155,8 @@ public class Joycon
 
     private readonly byte[] _sliderVal = [0, 0];
 
-    private StickLimitsCalibration _stickCal = new();
+    // Raw stick values
     private TwoAxisUShort _stickPrecal;
-
-    private StickLimitsCalibration _stick2Cal = new();
     private TwoAxisUShort _stick2Precal;
 
     private Motion _motion;
@@ -159,6 +166,19 @@ public class Joycon
     private bool _motionCalibrated = false;
     private bool _SticksCalibrated = false;
     private readonly short[] _activeMotionData = new short[6];
+
+    // ridiculous amount of stick calibration data
+    private StickLimitsCalibration _stickCalHWFactory = new();
+    private StickLimitsCalibration _stick2CalHWFactory = new();
+    private StickLimitsCalibration _stickCalHWUser = new();
+    private StickLimitsCalibration _stick2CalHWUser = new();
+    private StickLimitsCalibration _stickCalSW = new();
+    private StickLimitsCalibration _stick2CalSW = new();
+
+    private StickLimitsCalibration _stickCal= new(); // get rid of me
+    private StickLimitsCalibration _stick2Cal = new(); // me too
+
+    // these are the software limits calculated by BetterJoy
     private StickLimitsCalibration _activeStick1 = new();
     private StickLimitsCalibration _activeStick2 = new();
 
@@ -502,7 +522,7 @@ public class Joycon
             var ok = DumpCalibrationData();
             if (!ok)
             {
-                throw new DeviceComFailedException("reset calibration");
+                throw new DeviceComFailedException("reset calibration"); // this shouldn't throw, handle it
             }
 
             BlinkHomeLight();
@@ -1906,6 +1926,7 @@ public class Joycon
                 _stick2Precal.X = BitWrangler.Lower3NibblesLittleEndian(reportBuf[9], reportBuf[10]);
                 _stick2Precal.Y = BitWrangler.Upper3NibblesLittleEndian(reportBuf[10], reportBuf[11]);
             }
+            //_logger?.Log($"stick {_stickPrecal} {_stick2Precal}");
         }
         else if (reportType == (byte)InputReportMode.SimpleHID)
         {
@@ -2065,12 +2086,23 @@ public class Joycon
             var range = _range;
             var antiDeadzone = Config.StickLeftAntiDeadzone;
 
-            if (_SticksCalibrated)
+            if (_SticksCalibrated && Config.CalibrationSource ==CalibrationSource.Software)
             {
                 cal = _activeStick1;
                 dz = StickDeadZoneCalibration.FromConfigLeft(Config);
                 range = StickRangeCalibration.FromConfigLeft(Config);
             }
+
+            if (Config.CalibrationSource == CalibrationSource.Hardware_Factory)
+            {
+                cal = _stickCalHWFactory;
+            }
+            else if (Config.CalibrationSource == CalibrationSource.Hardware_User)
+            {
+                cal = _stickCalHWUser;
+            }
+
+            //_logger?.Log($"stick {_stickPrecal} {_stick2Precal}");
 
             CalculateStickCenter(_stickPrecal, cal, dz, range, antiDeadzone, ref _stick);
 
@@ -2568,14 +2600,15 @@ public class Joycon
 
     private bool DumpCalibrationData()
     {
+        // Start with reasonable values
+        _deadZone = StickDeadZoneCalibration.FromConfigLeft(Config);
+        _deadZone2 = StickDeadZoneCalibration.FromConfigRight(Config);
+
+        _range = StickRangeCalibration.FromConfigLeft(Config);
+        _range2 = StickRangeCalibration.FromConfigRight(Config);
+
         if (!CalibrationDataSupported())
         {
-            _deadZone = StickDeadZoneCalibration.FromConfigLeft(Config);
-            _deadZone2 = StickDeadZoneCalibration.FromConfigRight(Config);
-
-            _range = StickRangeCalibration.FromConfigLeft(Config);
-            _range2 = StickRangeCalibration.FromConfigRight(Config);
-
             _DumpedCalibration = false;
 
             return true;
@@ -2583,85 +2616,92 @@ public class Joycon
 
         var ok = true;
 
-        // get user calibration data if possible
+        // get user calibration data if possible DON'T FAIL
 
         // Sticks axis
         {
+            // First get the hardware user calibration data
             var userStickData = ReadSPICheck(SPIPage.UserStickCalibration, ref ok);
-            var factoryStickData = ReadSPICheck(SPIPage.FactoryStickCalibration, ref ok);
-
-            var stick1Data = new ReadOnlySpan<byte>(userStickData, IsLeft ? 2 : 13, 9);
-            var stick1Name = IsLeft ? "left" : "right";
-
             if (ok)
             {
-                if (userStickData[IsLeft ? 0 : 11] == 0xB2 && userStickData[IsLeft ? 1 : 12] == 0xA1)
-                {
-                    DebugPrint($"Retrieve user {stick1Name} stick calibration data.", DebugType.Comms);
-                }
-                else
-                {
-                    stick1Data = new ReadOnlySpan<byte>(factoryStickData, IsLeft ? 0 : 9, 9);
+                var stick1Data = new ReadOnlySpan<byte>(userStickData, IsLeft ? 2 : 13, 9);
+                _stickCalHWUser = StickLimitsCalibration.FromStickCalibrationBytes(stick1Data, IsLeft);
 
-                    DebugPrint($"Retrieve factory {stick1Name} stick calibration data.", DebugType.Comms);
+                var userConfigValid = (userStickData[IsLeft ? 0 : 11] == 0xB2 && userStickData[IsLeft ? 1 : 12] == 0xA1);
+
+                if (IsPro) //If it is pro, then it also has right
+                {
+                    var stick2Data = new ReadOnlySpan<byte>(userStickData, 13, 9);
+                    _stick2CalHWUser = StickLimitsCalibration.FromStickCalibrationBytes(stick2Data, false);
+
+                    var userConfig2Valid = (userStickData[11] == 0xB2 && userStickData[12] == 0xA1);
                 }
             }
-
-            _stickCal = IsLeft ?
-                StickLimitsCalibration.FromLeftStickCalibrationBytes(stick1Data) :
-                StickLimitsCalibration.FromRightStickCalibrationBytes(stick1Data);
-
-            DebugPrint(_stickCal, DebugType.None);
-
-            if (IsPro) //If it is pro, then it is also always left
+            else
             {
-                var stick2Data = new ReadOnlySpan<byte>(userStickData, 13, 9);
-                var stick2Name = "right";
-
-                if (ok)
-                {
-                    if (userStickData[11] == 0xB2 && userStickData[12] == 0xA1)
-                    {
-                        DebugPrint($"Retrieve user {stick2Name} stick calibration data.", DebugType.Comms);
-                    }
-                    else
-                    {
-                        stick2Data = new ReadOnlySpan<byte>(factoryStickData, 9, 9);
-
-                        DebugPrint($"Retrieve factory {stick2Name} stick calibration data.", DebugType.Comms);
-                    }
-                }
-
-                _stick2Cal = StickLimitsCalibration.FromRightStickCalibrationBytes(stick2Data);
-
-                DebugPrint(_stick2Cal, DebugType.None);
+                var data = new ReadOnlySpan<byte>(userStickData, 0, userStickData.Length);
+                String message = data.ToString();
+                _logger?.Log($"Hardware User Calibration SPI Read Failed [{message}]");
             }
+
+            // Then get the factory calibration data
+            var factoryStickData = ReadSPICheck(SPIPage.FactoryStickCalibration, ref ok);
+            if (ok)
+            {
+                var stick1Data = new ReadOnlySpan<byte>(factoryStickData, IsLeft ? 0 : 9, 9);
+                _stickCalHWFactory = StickLimitsCalibration.FromStickCalibrationBytes(stick1Data, IsLeft);
+
+                if (IsPro) //If it is pro, then it also has right
+                {
+                    var stick2Data = new ReadOnlySpan<byte>(factoryStickData, 9, 9);
+                    _stick2CalHWFactory = StickLimitsCalibration.FromStickCalibrationBytes(stick2Data, false);
+                }
+            }
+            else
+            {
+                var data = new ReadOnlySpan<byte>(factoryStickData, 0, factoryStickData.Length);
+                String message = data.ToString();
+                _logger?.Log($"Hardware Factory Calibration SPI Read Failed [{message}]");
+            }
+            //DebugPrint($"Retrieve user {stick1Name} stick calibration data.", DebugType.Comms);
+            //DebugPrint(_stickCal, DebugType.None);
+            //DebugPrint(_stick2Cal, DebugType.None);
         }
+
 
         // Sticks deadzones and ranges
         // Looks like the range is a 12 bits precision ratio.
         // I suppose the right way to interpret it is as a float by dividing it by 0xFFF
         {
             var factoryDeadzoneData = ReadSPICheck(SPIPage.StickDeadZone, ref ok);
-
-            var offset = IsLeft ? 0 : 0x12;
-
-            _deadZone = new StickDeadZoneCalibration(_stickCal, factoryDeadzoneData.AsSpan(offset, 2));
-            _range = new StickRangeCalibration(factoryDeadzoneData.AsSpan(offset + 1, 2));
-
-            if (IsPro) //If it is pro, then it is also always left
+            if (ok)
             {
-                offset = 0x12;
+                var offset = IsLeft ? 0 : 0x12;
+                
+                _deadZone = new StickDeadZoneCalibration(_stickCal, factoryDeadzoneData.AsSpan(offset, 2));
+                _range = new StickRangeCalibration(factoryDeadzoneData.AsSpan(offset + 1, 2));
 
-                _deadZone2 = new StickDeadZoneCalibration(_stickCal, factoryDeadzoneData.AsSpan(offset, 2));
-                _range2 = new StickRangeCalibration(factoryDeadzoneData.AsSpan(offset + 1, 2));
+                if (IsPro) //If it is pro, then it is also always left
+                {
+                    offset = 0x12;
+
+                    _deadZone2 = new StickDeadZoneCalibration(_stickCal, factoryDeadzoneData.AsSpan(offset, 2));
+                    _range2 = new StickRangeCalibration(factoryDeadzoneData.AsSpan(offset + 1, 2));
+                }
+                //_logger?.Log($"factoryDeadzoneData OK {factoryDeadzoneData}");
             }
+            else
+                _logger?.Log($"factoryDeadzoneData NOT OK!! {factoryDeadzoneData}");
         }
 
         // Gyro and accelerometer
         if (MotionSupported())
         {
             var userSensorData = ReadSPICheck(SPIPage.UserMotionCalibration, ref ok);
+            if (ok)
+                _logger?.Log($"motion userSensorData OK {userSensorData}");
+            else
+                _logger?.Log($"motion userSensorData NOT OK!! {userSensorData}");
             var sensorData = new ReadOnlySpan<byte>(userSensorData, 2, 24);
 
             if (ok)

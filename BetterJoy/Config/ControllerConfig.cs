@@ -42,6 +42,7 @@ public class ControllerConfig : Config
     public Orientation DoNotRejoin = Orientation.None;
     public bool AutoPowerOff = false;
     public bool AllowCalibration = true;
+    public CalibrationSource CalibrationSource = CalibrationSource.Software;
 
     public ControllerConfig(ILogger? logger) : base(logger) { }
 
@@ -83,6 +84,7 @@ public class ControllerConfig : Config
         DoNotRejoin = config.DoNotRejoin;
         AutoPowerOff = config.AutoPowerOff;
         AllowCalibration = config.AllowCalibration;
+        CalibrationSource = config.CalibrationSource;
     }
 
     public override void Update()
@@ -123,6 +125,7 @@ public class ControllerConfig : Config
         TryUpdateSetting("DoNotRejoinJoycons", ref DoNotRejoin);
         TryUpdateSetting("AutoPowerOff", ref AutoPowerOff);
         TryUpdateSetting("AllowCalibration", ref AllowCalibration);
+        TryUpdateSetting("CalibrationSource", ref CalibrationSource);
     }
 
     public override ControllerConfig Clone()

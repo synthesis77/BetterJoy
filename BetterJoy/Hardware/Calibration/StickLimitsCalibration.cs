@@ -24,15 +24,15 @@ public class StickLimitsCalibration
         InitFromValues(values, isLeft);
     }
 
-    public static StickLimitsCalibration FromRightStickCalibrationBytes(ReadOnlySpan<byte> raw)
+    public static StickLimitsCalibration FromStickCalibrationBytes(ReadOnlySpan<byte> raw, bool isLeft)
     {
-        return new StickLimitsCalibration(raw, false);
+        return new StickLimitsCalibration(raw, isLeft);
     }
 
-    public static StickLimitsCalibration FromLeftStickCalibrationBytes(ReadOnlySpan<byte> raw)
-    {
-        return new StickLimitsCalibration(raw, true);
-    }
+    //public static StickLimitsCalibration FromLeftStickCalibrationBytes(ReadOnlySpan<byte> raw)
+    //{
+    //    return new StickLimitsCalibration(raw, true);
+    //}
 
     private StickLimitsCalibration(ReadOnlySpan<byte> raw, bool isLeft)
     {

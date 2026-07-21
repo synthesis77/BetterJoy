@@ -229,7 +229,7 @@ public class JoyconManager
 
         _3rdPartyControllers.SController? thirdParty = null;
 
-        // Check if it's a custom controller
+        // Check if it's a custom controller HERE, WHY???
         foreach (var currentThirdparty in Program.ThirdpartyCons)
         {
             if (info.VendorId == currentThirdparty.VendorId &&
@@ -246,6 +246,7 @@ public class JoyconManager
 
         if (!validController)
         {
+            //_logger?.Log($"Device Info: {info}\n\n");
             return;
         }
 
@@ -339,7 +340,7 @@ public class JoyconManager
         }
         finally
         {
-            Controllers.Add(controller);
+            Controllers.Add(controller); // should this add the controller if the above failed????
         }
 
         _form.AddController(controller);

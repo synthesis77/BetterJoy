@@ -1,5 +1,7 @@
 using System;
+using System.Data;
 using System.Runtime.InteropServices;
+using System.Xml.Linq;
 
 namespace BetterJoy.HIDApi.Native;
 
@@ -39,5 +41,10 @@ public struct DeviceInfo
 
             return Marshal.PtrToStructure<DeviceInfo>(_next);
         }
+    }
+
+    public override string ToString()
+    {
+        return $"{{ {VendorId}:\"{ManufacturerString}\" {ProductId}:\"{ProductString}\" \"{SerialNumber}\" {Path} }}";
     }
 }
