@@ -38,7 +38,7 @@ public readonly struct StickRangeCalibration
         return new StickRangeCalibration(config.StickLeftRange);
     }
 
-    public static implicit operator float(StickRangeCalibration range) => range._value;
+    public static implicit operator float(StickRangeCalibration range) => range._value!=0 ? range._value : 1; // zero makes no sense!!!
 
     private static float CalculateRange(ushort value)
     {
