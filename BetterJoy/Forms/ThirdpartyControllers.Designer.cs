@@ -43,6 +43,8 @@ namespace BetterJoy.Forms
             label1 = new System.Windows.Forms.Label();
             tip_device = new System.Windows.Forms.ToolTip(components);
             btn_refresh = new System.Windows.Forms.Button();
+            saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
+            linkLabel1 = new System.Windows.Forms.LinkLabel();
             group_props.SuspendLayout();
             SuspendLayout();
             // 
@@ -183,11 +185,23 @@ namespace BetterJoy.Forms
             btn_refresh.UseVisualStyleBackColor = true;
             btn_refresh.Click += btn_refresh_Click;
             // 
+            // linkLabel1
+            // 
+            linkLabel1.AutoSize = true;
+            linkLabel1.Location = new System.Drawing.Point(531, 278);
+            linkLabel1.Name = "linkLabel1";
+            linkLabel1.Size = new System.Drawing.Size(186, 15);
+            linkLabel1.TabIndex = 10;
+            linkLabel1.TabStop = true;
+            linkLabel1.Text = "Open System Bluetooth Settings...";
+            linkLabel1.LinkClicked += linkLabel1_LinkClicked;
+            // 
             // _3rdPartyControllers
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             ClientSize = new System.Drawing.Size(731, 308);
+            Controls.Add(linkLabel1);
             Controls.Add(btn_refresh);
             Controls.Add(label1);
             Controls.Add(lbl_all);
@@ -228,5 +242,7 @@ namespace BetterJoy.Forms
         private System.Windows.Forms.Button btn_refresh;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.ComboBox chooseType;
+        private System.Windows.Forms.SaveFileDialog saveFileDialog1;
+        private System.Windows.Forms.LinkLabel linkLabel1;
     }
 }

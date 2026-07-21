@@ -296,4 +296,31 @@ public partial class _3rdPartyControllers : Form
             return $"{Manufacturer}|{Product}|{VendorId}|{ProductId}|{SerialNumber}|{Type}";
         }
     }
+
+    private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+    {
+        try
+        {
+            // Open Windows Settings -> Bluetooth
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:bluetooth")
+            {
+                UseShellExecute = true
+            });
+        }
+        catch (Exception)
+        {
+            try
+            {
+                // Fallback: try opening legacy Control Panel Bluetooth page
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("control.exe", "/name Microsoft.Bluetooth")
+                {
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, "Unable to open Bluetooth settings: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
 }
