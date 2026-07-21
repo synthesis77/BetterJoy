@@ -505,7 +505,12 @@ public partial class MainForm : Form
         menu.Items.Add(joinSplitItem);
 
         var infoItem = new ToolStripMenuItem("Info") { Enabled = true };
-        infoItem.Click += (s, ev) => { var f = new JoyconConfigForm(); f.ShowDialog(this); };
+        infoItem.Click += (s, ev) =>
+        {
+            // open a non-modal config window for the clicked controller
+            var f = new JoyconConfigForm(controller);
+            f.Show(); // for modal, use .ShowDialog(this).  for non-modal-on-top, use Show(this)
+        };
         menu.Items.Add(infoItem);
 
         //This crashes => menu.Closed += (s, ev) => menu.Dispose();
@@ -516,8 +521,8 @@ public partial class MainForm : Form
 
     private void showConfigForm_Click(object sender, EventArgs e)
     {
-        using var configForm = new JoyconConfigForm();
-        configForm.ShowDialog(this);
+        var f = new JoyconConfigForm();
+        f.Show();
     }
 
     private void startInTrayBox_Click(object sender, EventArgs e)

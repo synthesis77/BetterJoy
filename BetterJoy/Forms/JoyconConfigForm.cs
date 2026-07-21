@@ -12,6 +12,7 @@ namespace BetterJoy.Forms;
 
 public class JoyconConfigForm : Form
 {
+    private readonly string? _initialControllerSerial;
     private readonly Timer _pollTimer;
     private readonly ComboBox _controllerSelector;
     private readonly ControllerVisualizer _visualizer;
@@ -53,6 +54,11 @@ public class JoyconConfigForm : Form
         FormClosed += (s, e) => _pollTimer.Stop();
     }
 
+    public JoyconConfigForm(Joycon? initialController) : this()
+    {
+        _initialControllerSerial = initialController?.SerialNumber;
+    }
+
     private void JoyconConfigForm_Load(object? sender, EventArgs e)
     {
         RefreshControllerList();
@@ -76,6 +82,19 @@ public class JoyconConfigForm : Form
 
         if (_controllerSelector.Items.Count > 0)
         {
+            // If an initial controller was provided, select it
+            if (!string.IsNullOrEmpty(_initialControllerSerial))
+            {
+                for (var i = 0; i < _controllerSelector.Items.Count; ++i)
+                {
+                    if ((_controllerSelector.Items[i] as ComboItem)?.Controller.SerialNumber == _initialControllerSerial)
+                    {
+                        _controllerSelector.SelectedIndex = i;
+                        return;
+                    }
+                }
+            }
+
             _controllerSelector.SelectedIndex = 0;
         }
     }
