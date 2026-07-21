@@ -1,5 +1,6 @@
 using BetterJoy.Controller;
 using BetterJoy.Logging;
+using BetterJoy.Properties;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -25,6 +26,7 @@ public class JoyconConfigForm : Form
         StartPosition = FormStartPosition.CenterParent;
 
         _controllerSelector = new ComboBox { Dock = DockStyle.Top, DropDownStyle = ComboBoxStyle.DropDownList };
+        _controllerSelector.Click += (s,e) => { RefreshControllerList(); };
         _controllerSelector.SelectedIndexChanged += ControllerSelector_SelectedIndexChanged;
 
         _visualizer = new ControllerVisualizer { Dock = DockStyle.Left, Width = 420 };
@@ -44,7 +46,7 @@ public class JoyconConfigForm : Form
         Controls.Add(_visualizer);
         Controls.Add(_controllerSelector);
 
-        _pollTimer = new Timer { Interval = 50 }; // 20Hz
+        _pollTimer = new Timer { Interval = 1000/60 }; // 60Hz
         _pollTimer.Tick += PollTimer_Tick;
 
         Load += JoyconConfigForm_Load;
@@ -150,29 +152,65 @@ public class JoyconConfigForm : Form
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public Joycon? SelectedController { get; set; }
 
-        // Normalized button regions expressed as rectangles relative to control size
-        private readonly Dictionary<Joycon.Button, RectangleF> _regions = new()
+        // Images for controller types
+        private readonly Bitmap _imgLeft = Resources.jc_left;
+        private readonly Bitmap _imgRight = Resources.jc_right;
+        private readonly Bitmap _imgPro = Resources.pro;
+
+        // Region definitions per controller type (normalized to image dimensions)
+        // These are tuned to the resource images. Rectangles are X,Y,Width,Height expressed 0..1
+        private static Dictionary<Joycon.Button, RectangleF> GetRegionsForType(Joycon.ControllerType type)
         {
-            // layout tuned for a horizontally-oriented controller image drawn left
-            { Joycon.Button.Stick, new RectangleF(0.08f, 0.58f, 0.22f, 0.22f) }, // left stick
-            { Joycon.Button.Stick2, new RectangleF(0.70f, 0.58f, 0.22f, 0.22f) }, // right stick
-            { Joycon.Button.DpadUp, new RectangleF(0.08f, 0.28f, 0.12f, 0.12f) },
-            { Joycon.Button.DpadLeft, new RectangleF(0.02f, 0.36f, 0.12f, 0.12f) },
-            { Joycon.Button.DpadRight, new RectangleF(0.14f, 0.36f, 0.12f, 0.12f) },
-            { Joycon.Button.DpadDown, new RectangleF(0.08f, 0.44f, 0.12f, 0.12f) },
-            { Joycon.Button.Plus, new RectangleF(0.86f, 0.18f, 0.10f, 0.10f) },
-            { Joycon.Button.Minus, new RectangleF(0.04f, 0.18f, 0.10f, 0.10f) },
-            { Joycon.Button.Home, new RectangleF(0.84f, 0.40f, 0.10f, 0.10f) },
-            { Joycon.Button.Capture, new RectangleF(0.84f, 0.28f, 0.10f, 0.10f) },
-            { Joycon.Button.Shoulder1, new RectangleF(0.08f, 0.14f, 0.18f, 0.08f) },
-            { Joycon.Button.Shoulder2, new RectangleF(0.08f, 0.02f, 0.18f, 0.12f) },
-            { Joycon.Button.A, new RectangleF(0.82f, 0.36f, 0.12f, 0.12f) },
-            { Joycon.Button.B, new RectangleF(0.74f, 0.44f, 0.12f, 0.12f) },
-            { Joycon.Button.X, new RectangleF(0.74f, 0.28f, 0.12f, 0.12f) },
-            { Joycon.Button.Y, new RectangleF(0.66f, 0.36f, 0.12f, 0.12f) },
-            { Joycon.Button.Shoulder21, new RectangleF(0.78f, 0.14f, 0.18f, 0.08f) },
-            { Joycon.Button.Shoulder22, new RectangleF(0.78f, 0.02f, 0.18f, 0.12f) },
-        };
+            return Joycon.ControllerType.Pro /*type*/ switch
+            {
+                Joycon.ControllerType.JoyconLeft => new Dictionary<Joycon.Button, RectangleF>
+                {
+                    { Joycon.Button.Stick, new RectangleF(0.12f, 0.54f, 0.22f, 0.22f) },
+                    { Joycon.Button.DpadUp, new RectangleF(0.12f, 0.26f, 0.12f, 0.12f) },
+                    { Joycon.Button.DpadLeft, new RectangleF(0.06f, 0.34f, 0.12f, 0.12f) },
+                    { Joycon.Button.DpadRight, new RectangleF(0.18f, 0.34f, 0.12f, 0.12f) },
+                    { Joycon.Button.DpadDown, new RectangleF(0.12f, 0.42f, 0.12f, 0.12f) },
+                    { Joycon.Button.Minus, new RectangleF(0.06f, 0.14f, 0.10f, 0.10f) },
+                    { Joycon.Button.Shoulder1, new RectangleF(0.04f, 0.02f, 0.26f, 0.10f) },
+                    { Joycon.Button.Shoulder2, new RectangleF(0.04f, 0.0f, 0.26f, 0.06f) },
+                    { Joycon.Button.Home, new RectangleF(0.72f, 0.38f, 0.12f, 0.12f) } // approximate for left's center buttons
+                },
+                Joycon.ControllerType.JoyconRight => new Dictionary<Joycon.Button, RectangleF>
+                {
+                    { Joycon.Button.Stick, new RectangleF(0.62f, 0.54f, 0.22f, 0.22f) },
+                    { Joycon.Button.A, new RectangleF(0.84f, 0.36f, 0.12f, 0.12f) },
+                    { Joycon.Button.B, new RectangleF(0.76f, 0.44f, 0.12f, 0.12f) },
+                    { Joycon.Button.X, new RectangleF(0.76f, 0.28f, 0.12f, 0.12f) },
+                    { Joycon.Button.Y, new RectangleF(0.68f, 0.36f, 0.12f, 0.12f) },
+                    { Joycon.Button.Plus, new RectangleF(0.88f, 0.16f, 0.10f, 0.10f) },
+                    { Joycon.Button.Capture, new RectangleF(0.86f, 0.26f, 0.10f, 0.10f) },
+                    { Joycon.Button.Shoulder21, new RectangleF(0.72f, 0.02f, 0.26f, 0.10f) },
+                    { Joycon.Button.Shoulder22, new RectangleF(0.72f, 0.0f, 0.26f, 0.06f) }
+                },
+                Joycon.ControllerType.Pro => new Dictionary<Joycon.Button, RectangleF>
+                {
+                    { Joycon.Button.Stick, new RectangleF(0.18f, 0.58f, 0.18f, 0.18f) },
+                    { Joycon.Button.Stick2, new RectangleF(0.64f, 0.58f, 0.18f, 0.18f) },
+                    { Joycon.Button.DpadUp, new RectangleF(0.12f, 0.28f, 0.10f, 0.10f) },
+                    { Joycon.Button.DpadLeft, new RectangleF(0.06f, 0.36f, 0.10f, 0.10f) },
+                    { Joycon.Button.DpadRight, new RectangleF(0.18f, 0.36f, 0.10f, 0.10f) },
+                    { Joycon.Button.DpadDown, new RectangleF(0.12f, 0.44f, 0.10f, 0.10f) },
+                    { Joycon.Button.Plus, new RectangleF(0.60f, 0.28f, 0.06f, 0.06f) },
+                    { Joycon.Button.Minus, new RectangleF(0.34f, 0.28f, 0.06f, 0.06f) },
+                    { Joycon.Button.Home, new RectangleF(0.56f, 0.36f, 0.06f, 0.06f) },
+                    { Joycon.Button.Capture, new RectangleF(0.38f, 0.36f, 0.06f, 0.06f) },
+                    { Joycon.Button.A, new RectangleF(0.82f, 0.36f, 0.12f, 0.12f) },
+                    { Joycon.Button.B, new RectangleF(0.74f, 0.44f, 0.12f, 0.12f) },
+                    { Joycon.Button.X, new RectangleF(0.74f, 0.28f, 0.12f, 0.12f) },
+                    { Joycon.Button.Y, new RectangleF(0.66f, 0.36f, 0.12f, 0.12f) },
+                    { Joycon.Button.Shoulder2, new RectangleF(0.06f, 0.02f, 0.40f, 0.10f) },
+                    { Joycon.Button.Shoulder22, new RectangleF(0.54f, 0.02f, 0.40f, 0.10f) },
+                    { Joycon.Button.Shoulder1, new RectangleF(0.06f, 0.12f, 0.18f, 0.08f) },
+                    { Joycon.Button.Shoulder21, new RectangleF(0.78f, 0.12f, 0.18f, 0.08f) }
+                },
+                _ => new Dictionary<Joycon.Button, RectangleF>()
+            };
+        }
 
         public ControllerVisualizer()
         {
@@ -190,47 +228,96 @@ public class JoyconConfigForm : Form
             var w = ClientSize.Width;
             var h = ClientSize.Height;
 
-            // Draw simple controller silhouette
-            DrawControllerSilhouette(g, w, h);
-
-            if (SelectedController == null)
+            // Draw controller image (if selected)
+            Bitmap? img = null;
+            if (SelectedController != null)
             {
-                return;
+                img = SelectedController.Type switch
+                {
+                    Joycon.ControllerType.JoyconLeft => _imgLeft,
+                    Joycon.ControllerType.JoyconRight => _imgRight,
+                    Joycon.ControllerType.Pro => _imgPro,
+                    _ => _imgLeft
+                };
             }
 
-            // highlight regions based on button state
-            foreach (var kv in _regions)
+            Rectangle imgDest = new Rectangle(8, 8, w - 16, h - 16);
+            if (img != null)
             {
-                var btn = kv.Key;
-                var rectNorm = kv.Value;
-                var rect = new RectangleF(rectNorm.X * w, rectNorm.Y * h, rectNorm.Width * w, rectNorm.Height * h);
-
-                bool pressed = false;
-                try
+                // preserve aspect and center
+                var imgRatio = (float)img.Width / img.Height;
+                var destRatio = (float)imgDest.Width / imgDest.Height;
+                Rectangle drawRect;
+                if (imgRatio > destRatio)
                 {
-                    pressed = SelectedController.IsButtonPressed(btn);
-                }
-                catch
-                {
-                    pressed = false;
-                }
-
-                if (pressed)
-                {
-                    using var brush = new SolidBrush(Color.FromArgb(180, Color.OrangeRed));
-                    g.FillEllipse(brush, rect);
+                    var drawW = imgDest.Width;
+                    var drawH = (int)(drawW / imgRatio);
+                    drawRect = new Rectangle(imgDest.X, imgDest.Y + (imgDest.Height - drawH) / 2, drawW, drawH);
                 }
                 else
                 {
-                    g.DrawEllipse(Pens.DimGray, rect);
+                    var drawH = imgDest.Height;
+                    var drawW = (int)(drawH * imgRatio);
+                    drawRect = new Rectangle(imgDest.X + (imgDest.Width - drawW) / 2, imgDest.Y, drawW, drawH);
                 }
+
+                g.DrawImage(img, drawRect);
+
+                if (SelectedController == null)
+                {
+                    return;
+                }
+
+                // compute regions based on selected controller type
+                var regions = GetRegionsForType(SelectedController.Type);
+
+                foreach (var kv in regions)
+                {
+                    var btn = kv.Key;
+                    var rectNorm = kv.Value;
+
+                    // map normalized rect on image to actual drawn rect
+                    var rx = drawRect.X + rectNorm.X * drawRect.Width;
+                    var ry = drawRect.Y + rectNorm.Y * drawRect.Height;
+                    var rw = rectNorm.Width * drawRect.Width;
+                    var rh = rectNorm.Height * drawRect.Height;
+                    var rect = new RectangleF(rx, ry, rw, rh);
+
+                    bool pressed = false;
+                    try
+                    {
+                        pressed = SelectedController.IsButtonPressed(btn);
+                    }
+                    catch { pressed = false; }
+
+                    if (pressed)
+                    {
+                        using var brush = new SolidBrush(Color.FromArgb(180, Color.OrangeRed));
+                        g.FillEllipse(brush, rect);
+                    }
+                    else
+                    {
+                        g.DrawEllipse(Pens.DimGray, rect);
+                    }
+                }
+
+                // Draw stick labels if present in regions
+                if (regions.TryGetValue(Joycon.Button.Stick, out var ls))
+                {
+                    g.DrawString("L", SystemFonts.DefaultFont, Brushes.Black, drawRect.X + ls.X * drawRect.Width + 4, drawRect.Y + ls.Y * drawRect.Height + 4);
+                }
+
+                if (regions.TryGetValue(Joycon.Button.Stick2, out var rs))
+                {
+                    g.DrawString("R", SystemFonts.DefaultFont, Brushes.Black, drawRect.X + rs.X * drawRect.Width + 4, drawRect.Y + rs.Y * drawRect.Height + 4);
+                }
+
+                return;
             }
 
-            // Draw labels for sticks
-            var leftStickRect = _regions[Joycon.Button.Stick];
-            var rightStickRect = _regions[Joycon.Button.Stick2];
-            g.DrawString("L", SystemFonts.DefaultFont, Brushes.Black, leftStickRect.X * w + 4, leftStickRect.Y * h + 4);
-            g.DrawString("R", SystemFonts.DefaultFont, Brushes.Black, rightStickRect.X * w + 4, rightStickRect.Y * h + 4);
+            // fallback silhouette when no image available
+            DrawControllerSilhouette(g, w, h);
+            return;
         }
 
         private static void DrawControllerSilhouette(Graphics g, int w, int h)
