@@ -156,6 +156,11 @@ public class JoyconConfigForm : Form
         private readonly Bitmap _imgLeft = Resources.jc_left;
         private readonly Bitmap _imgRight = Resources.jc_right;
         private readonly Bitmap _imgPro = Resources.pro;
+        private readonly Bitmap _imgSNES = Resources.snes;
+        private readonly Bitmap _imgNES = Resources.nes;
+        private readonly Bitmap _imgN64 = Resources.n64;
+        private readonly Bitmap _imgFamicomI = Resources.famicom_i;
+        private readonly Bitmap _imgFamicomII = Resources.famicom_ii;
 
         // Region definitions per controller type (normalized to image dimensions)
         // These are tuned to the resource images. Rectangles are X,Y,Width,Height expressed 0..1
@@ -207,6 +212,51 @@ public class JoyconConfigForm : Form
                     { Joycon.Button.Shoulder22, new RectangleF(0.54f, 0.02f, 0.40f, 0.10f) },
                     { Joycon.Button.Shoulder1, new RectangleF(0.06f, 0.12f, 0.18f, 0.08f) },
                     { Joycon.Button.Shoulder21, new RectangleF(0.78f, 0.12f, 0.18f, 0.08f) }
+                },
+                Joycon.ControllerType.SNES => new Dictionary<Joycon.Button, RectangleF>
+                {
+                    { Joycon.Button.DpadUp, new RectangleF(0.12f, 0.22f, 0.10f, 0.10f) },
+                    { Joycon.Button.DpadLeft, new RectangleF(0.06f, 0.30f, 0.10f, 0.10f) },
+                    { Joycon.Button.DpadRight, new RectangleF(0.18f, 0.30f, 0.10f, 0.10f) },
+                    { Joycon.Button.DpadDown, new RectangleF(0.12f, 0.38f, 0.10f, 0.10f) },
+                    { Joycon.Button.X, new RectangleF(0.72f, 0.24f, 0.12f, 0.12f) },
+                    { Joycon.Button.Y, new RectangleF(0.64f, 0.32f, 0.12f, 0.12f) },
+                    { Joycon.Button.A, new RectangleF(0.80f, 0.32f, 0.12f, 0.12f) },
+                    { Joycon.Button.B, new RectangleF(0.72f, 0.40f, 0.12f, 0.12f) }
+                },
+                Joycon.ControllerType.NES => new Dictionary<Joycon.Button, RectangleF>
+                {
+                    { Joycon.Button.DpadLeft, new RectangleF(0.06f, 0.34f, 0.12f, 0.12f) },
+                    { Joycon.Button.DpadRight, new RectangleF(0.18f, 0.34f, 0.12f, 0.12f) },
+                    { Joycon.Button.DpadUp, new RectangleF(0.12f, 0.26f, 0.12f, 0.12f) },
+                    { Joycon.Button.DpadDown, new RectangleF(0.12f, 0.44f, 0.12f, 0.12f) },
+                    { Joycon.Button.A, new RectangleF(0.74f, 0.36f, 0.14f, 0.14f) },
+                    { Joycon.Button.B, new RectangleF(0.86f, 0.36f, 0.14f, 0.14f) }
+                },
+                Joycon.ControllerType.FamicomI => new Dictionary<Joycon.Button, RectangleF>
+                {
+                    { Joycon.Button.DpadLeft, new RectangleF(0.06f, 0.34f, 0.12f, 0.12f) },
+                    { Joycon.Button.DpadRight, new RectangleF(0.18f, 0.34f, 0.12f, 0.12f) },
+                    { Joycon.Button.A, new RectangleF(0.74f, 0.36f, 0.14f, 0.14f) },
+                    { Joycon.Button.B, new RectangleF(0.86f, 0.36f, 0.14f, 0.14f) }
+                },
+                Joycon.ControllerType.FamicomII => new Dictionary<Joycon.Button, RectangleF>
+                {
+                    { Joycon.Button.DpadLeft, new RectangleF(0.06f, 0.34f, 0.12f, 0.12f) },
+                    { Joycon.Button.DpadRight, new RectangleF(0.18f, 0.34f, 0.12f, 0.12f) },
+                    { Joycon.Button.A, new RectangleF(0.74f, 0.36f, 0.14f, 0.14f) },
+                    { Joycon.Button.B, new RectangleF(0.86f, 0.36f, 0.14f, 0.14f) }
+                },
+                Joycon.ControllerType.N64 => new Dictionary<Joycon.Button, RectangleF>
+                {
+                    { Joycon.Button.DpadUp, new RectangleF(0.10f, 0.26f, 0.12f, 0.12f) },
+                    { Joycon.Button.DpadLeft, new RectangleF(0.04f, 0.34f, 0.12f, 0.12f) },
+                    { Joycon.Button.DpadRight, new RectangleF(0.16f, 0.34f, 0.12f, 0.12f) },
+                    { Joycon.Button.DpadDown, new RectangleF(0.10f, 0.42f, 0.12f, 0.12f) },
+                    { Joycon.Button.A, new RectangleF(0.72f, 0.36f, 0.12f, 0.12f) },
+                    { Joycon.Button.B, new RectangleF(0.64f, 0.44f, 0.12f, 0.12f) },
+                    { Joycon.Button.X, new RectangleF(0.64f, 0.28f, 0.12f, 0.12f) },
+                    { Joycon.Button.Y, new RectangleF(0.56f, 0.36f, 0.12f, 0.12f) }
                 },
                 _ => new Dictionary<Joycon.Button, RectangleF>()
             };
