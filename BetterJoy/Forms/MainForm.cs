@@ -504,14 +504,20 @@ public partial class MainForm : Form
         joinSplitItem.Click += (s, ev) => Program.Mgr.JoinOrSplitJoycon(controller);
         menu.Items.Add(joinSplitItem);
 
-        // Disabled placeholder
-        var infoItem = new ToolStripMenuItem("Info") { Enabled = false };
+        var infoItem = new ToolStripMenuItem("Info") { Enabled = true };
+        infoItem.Click += (s, ev) => { var f = new JoyconConfigForm(); f.ShowDialog(this); };
         menu.Items.Add(infoItem);
 
         //This crashes => menu.Closed += (s, ev) => menu.Dispose();
 
         // show the menu at the mouse position relative to the button
         menu.Show(button, e.Location);
+    }
+
+    private void showConfigForm_Click(object sender, EventArgs e)
+    {
+        using var configForm = new JoyconConfigForm();
+        configForm.ShowDialog(this);
     }
 
     private void startInTrayBox_Click(object sender, EventArgs e)

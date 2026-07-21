@@ -337,6 +337,22 @@ public class Joycon
     public bool IsDeviceReady => State > Status.Dropped;
     public bool IsDeviceError => !IsDeviceReady && State != Status.NotAttached;
 
+    // Expose current stick and button state for UI visualization
+    public Stick GetLeftStick()
+    {
+        return _stick;
+    }
+
+    public Stick GetRightStick()
+    {
+        return _stick2;
+    }
+
+    public bool IsButtonPressed(Button b)
+    {
+        return _buttons is not null && _buttons[(int)b];
+    }
+
 
     public Joycon? Other;
 
