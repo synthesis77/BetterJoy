@@ -433,7 +433,8 @@ public partial class MainForm : Form
         controller.SetRumble(160f, 320f, 0f, 0f);
     }
 
-    private async void ConBtnClick(object? sender, EventArgs e)
+    // Main Controller Buttons Clicked
+    private async void ControllerButton_Click(object? sender, EventArgs e)
     {
         var button = sender as Button;
 
@@ -474,6 +475,43 @@ public partial class MainForm : Form
         }
 
         Program.Mgr.JoinOrSplitJoycon(controller);
+    }
+
+    // Main Controller Buttons Mouse Up (for right click)
+    private void ControllerButton_MouseUp(object? sender, MouseEventArgs e)
+    {
+        if (e.Button != MouseButtons.Right)
+        {
+            return;
+        }
+
+        if (sender is not Button button || button.Tag is not Joycon controller)
+        {
+            return;
+        }
+        
+        var menu = new ContextMenuStrip();
+
+        var calibrateItem = new ToolStripMenuItem("Calibrate");
+        calibrateItem.Click += (s, ev) => StartCalibrate(controller);
+        menu.Items.Add(calibrateItem);
+
+        var locateItem = new ToolStripMenuItem("Locate");
+        locateItem.Click += async (s, ev) => await LocateController(controller);
+        menu.Items.Add(locateItem);
+
+        var joinSplitItem = new ToolStripMenuItem("Join/Split") { Enabled = controller.IsJoycon }; // FIXME: make text appropriate
+        joinSplitItem.Click += (s, ev) => Program.Mgr.JoinOrSplitJoycon(controller);
+        menu.Items.Add(joinSplitItem);
+
+        // Disabled placeholder
+        var infoItem = new ToolStripMenuItem("Info") { Enabled = false };
+        menu.Items.Add(infoItem);
+
+        //This crashes => menu.Closed += (s, ev) => menu.Dispose();
+
+        // show the menu at the mouse position relative to the button
+        menu.Show(button, e.Location);
     }
 
     private void startInTrayBox_Click(object sender, EventArgs e)
@@ -1365,7 +1403,9 @@ public partial class MainForm : Form
         var button = _con[controller.PadId];
         button.Tag = controller; // assign controller to button
         button.Enabled = true;
-        button.Click += ConBtnClick;
+        button.Click += ControllerButton_Click;
+        button.MouseUp += ControllerButton_MouseUp;
+
         SetControllerImage(button, controller.Type);
     }
 
@@ -1392,7 +1432,8 @@ public partial class MainForm : Form
         button.BackColor = Color.FromArgb(0x00, SystemColors.Control);
         button.Tag = null;
         button.Enabled = false;
-        button.Click -= ConBtnClick;
+        button.Click -= ControllerButton_Click;
+        button.MouseUp -= ControllerButton_MouseUp;
         SetBackgroundImage(button, Resources.cross);
 
         if (nbControllers == 1)
