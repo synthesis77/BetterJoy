@@ -337,15 +337,47 @@ public class Joycon
     public bool IsDeviceReady => State > Status.Dropped;
     public bool IsDeviceError => !IsDeviceReady && State != Status.NotAttached;
 
-    // Expose current stick and button state for UI visualization
-    public Stick GetLeftStick()
+    private Stick Calibrated(TwoAxisUShort stickRaw, CalibrationSource cs = CalibrationSource.Software) // should be default
     {
-        return _stick;
+        if (cs == CalibrationSource.Uncalibrated)
+        {
+            return new Stick((stickRaw.X- 2048.0f) / 2048.0f, (stickRaw.Y- 2048.0f) / 2048.0f);
+        }
+
+        var cal = _stickCal;
+        var dz = _deadZone;
+        var range = _range;
+        var antiDeadzone = Config.StickLeftAntiDeadzone;
+        
+        if (cs == CalibrationSource.Software)
+        {
+            cal = _activeStick1;
+            dz = StickDeadZoneCalibration.FromConfigLeft(Config);
+            range = StickRangeCalibration.FromConfigLeft(Config);
+        }
+        else if (cs == CalibrationSource.Hardware_Factory)
+        {
+            cal = _stickCalHWFactory;
+        }
+        else if (cs == CalibrationSource.Hardware_User)
+        {
+            cal = _stickCalHWUser;
+        }
+        Stick stick = new Stick();
+        CalculateStickCenter(stickRaw, cal, dz, range, antiDeadzone, ref stick);
+
+        return stick;
+    }
+    // Expose current stick and button state for UI visualization
+    public Stick GetLeftStick(CalibrationSource cs = CalibrationSource.Software)
+    {
+        return Calibrated(_stickPrecal, cs);
     }
 
-    public Stick GetRightStick()
+    public Stick GetRightStick(CalibrationSource cs = CalibrationSource.Software)
     {
-        return _stick2;
+        return Calibrated(_stick2Precal, cs);
+        //return _stick2;
     }
 
     public bool IsButtonPressed(Button b)

@@ -3,10 +3,12 @@ using BetterJoy.Logging;
 using BetterJoy.Properties;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
-using System.ComponentModel;
 using System.Windows.Forms;
+using static BetterJoy.Controller.Joycon;
+using static BetterJoy.Forms._3rdPartyControllers;
 
 namespace BetterJoy.Forms;
 
@@ -117,14 +119,21 @@ public class JoyconConfigForm : Form
         _visualizer.Invalidate();
 
         // Update left stick box
-        DrawStick(_leftStickBox, controller.GetLeftStick());
+        DrawStick(_leftStickBox, true);
 
         // Update right stick box
-        DrawStick(_rightStickBox, controller.GetRightStick());
+        DrawStick(_rightStickBox, false);// controller.GetRightStick());
     }
 
-    private void DrawStick(PictureBox box, Stick stick)
+    private void DrawStick(PictureBox box, bool isLeft)//Stick stick)
     {
+        var item = _controllerSelector.SelectedItem as ComboItem;
+        var controller = item?.Controller;
+        if (controller == null)
+        {
+            return;
+        }
+
         var bmp = new Bitmap(Math.Max(1, box.Width), Math.Max(1, box.Height));
         using (var g = Graphics.FromImage(bmp))
         {
@@ -132,18 +141,36 @@ public class JoyconConfigForm : Form
             // draw axis
             var cx = bmp.Width / 2f;
             var cy = bmp.Height / 2f;
+            var radius = Math.Min(bmp.Width, bmp.Height) * 0.4f;
+            
             g.DrawLine(Pens.Gray, cx, 0, cx, bmp.Height);
             g.DrawLine(Pens.Gray, 0, cy, bmp.Width, cy);
+            g.DrawEllipse(Pens.Black, cx-radius, cy-radius, 2*radius, 2*radius);
 
-            // dot position (stick X/Y are in -1..1)
-            var radius = Math.Min(bmp.Width, bmp.Height) * 0.4f;
-            var x = cx + stick.X * radius;
-            var y = cy - stick.Y * radius; // invert Y for display
+            Brush[] s_calibrationBrushes =
+            [
+                Brushes.OrangeRed, // raw
+                Brushes.CornflowerBlue, // user
+                Brushes.LimeGreen, // factory
+                Brushes.Gold // software
+            ]; var i = 0;
 
-            // trail circle
-            var dotRadius = 6f;
-            g.FillEllipse(Brushes.OrangeRed, x - dotRadius, y - dotRadius, dotRadius * 2, dotRadius * 2);
-            g.DrawEllipse(Pens.Black, x - dotRadius, y - dotRadius, dotRadius * 2, dotRadius * 2);
+            // draw an empty bracket (simple outlined square) for each CalibrationSource value
+            foreach (CalibrationSource cs in Enum.GetValues(typeof(CalibrationSource)))
+            {
+                //if (cs == CalibrationSource.Software) continue;
+                Stick stick = isLeft ?
+                    controller.GetLeftStick(cs) : controller.GetRightStick(cs);
+
+                // dot position (stick X/Y are in -1..1)
+                var x = cx + stick.X * radius;
+                var y = cy - stick.Y * radius; // invert Y for display
+
+                // trail circle
+                var dotRadius = 2f;
+                g.FillEllipse(s_calibrationBrushes[i++], x - dotRadius, y - dotRadius, dotRadius * 2, dotRadius * 2);
+                g.DrawEllipse(Pens.Black, x - dotRadius, y - dotRadius, dotRadius * 2, dotRadius * 2);
+            }
         }
 
         var old = box.Image;
